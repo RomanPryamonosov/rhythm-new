@@ -462,9 +462,9 @@ if filename ~= 0
             mex smoothpatch_inversedistance_double.c -v
             mex vertex_neighbours_double.c -v
         elseif isunix
-            mex -v GCC='/usr/bin/gcc-4.9' smoothpatch_curvature_double.c
-            mex -v GCC='/usr/bin/gcc-4.9' smoothpatch_inversedistance_double.c
-            mex -v GCC='/usr/bin/gcc-4.9' vertex_neighbours_double.c
+            mex smoothpatch_curvature_double.c -v
+            mex smoothpatch_inversedistance_double.c -v
+            mex vertex_neighbours_double.c -v
         end
         cd(oldDir);
         FV = isosurface(heartMask, 0.5);
