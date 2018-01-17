@@ -135,7 +135,17 @@ set(pR,'MenuBar','none','Visible','on')
 %% Create handles
 handles.hdir = [];
 handles.bdir = [];
-handles.projectDir = uigetdir('Select Project Directory');
+try
+    editor_service = com.mathworks.mlservices.MLEditorServices;
+    editor_app = editor_service.getEditorApplication;
+    active_editor = editor_app.getActiveEditor;
+    storage_location = active_editor.getStorageLocation;
+    file = char(storage_location.getFile);
+    handles.projectDir = fileparts(file);
+    cd (handles.projectDir)
+catch
+    handles.projectDir = uigetdir('Select Project Directory');
+end
     
 handles.dtheta = [];
 handles.n_images = [];
