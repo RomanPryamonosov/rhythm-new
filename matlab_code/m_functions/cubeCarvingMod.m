@@ -188,7 +188,10 @@ if filename ~= 0
                     %octreeMatrix=zeros(1,27);
                     octreeMatrix=1:27;
                 else
-                    strcat(fullfile(projectDir,'Panoramic','level'),num2str(level),'.mat');
+                    %TODO revise! does not work
+                    loadPath = strcat(fullfile(projectDir,'matlab_code','whirl_octree_levels','level'),num2str(level),'.mat');
+                    %whos ('-file', loadPath)
+                    %load(loadPath, 'vert');
                     
                     vertexMatrix(:,1:3)=vertexMatrix(:,1:3)*[(Xn-X0) 0 0; 0 (Yn-Y0) 0; 0 0 (Zn-Z0)];
                     %vertexMatrix(:,1:3)=octreeBasisVertices*[(Xn-X0) 0 0; 0 (Yn-Y0) 0; 0 0 (Zn-Z0)];
@@ -472,8 +475,10 @@ if filename ~= 0
             %
         end
         cd(oldDir);
+        
         FV = isosurface(heartMask, 0.5);
         FV2 = smoothpatch(FV,1,7);
+        
         figure, 
         subplot(1,1,1), patch(FV2,'FaceColor',[0 0 1],'EdgeAlpha',0); view(3); camlight
         
