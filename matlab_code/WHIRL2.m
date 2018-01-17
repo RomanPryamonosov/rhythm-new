@@ -5,9 +5,14 @@ close all
 % geometry. Make sure the camera calibration files Par.dat and Rc.dat are
 % located in the home directory prior to initiating GUI.
 %
+% This code is available under open source license BSD
+% TODO copy some text about bsd
+%
+% Efimov lab: efimov@gwu.edu
 % Author: Christopher Gloschat
 % Date: June 20, 2016
-% Editted by Roman Pryamonosov
+% Editted by Shubham Gupta email: sgupta2020@gwu.edu
+% Editted by Roman Pryamonosov 
 % Date: November 14, 2017
 % * filepaths are formed by fullfile that works on all OS
 
@@ -130,8 +135,7 @@ set(pR,'MenuBar','none','Visible','on')
 %% Create handles
 handles.hdir = [];
 handles.bdir = [];
-%handles.surfaceDir = fullfile('G:','work','programs','PanoramicTesting2','Panoramic','SurfaceNew','build');
-handles.projectDir = fullfile('G:','work','programs','PanoramicTesting2');
+handles.projectDir = fullfile('G:','work','programs','gitProjects','rhythm-new');
     
 handles.dtheta = [];
 handles.n_images = [];
@@ -621,38 +625,38 @@ handles.octMax = [];
         end
         
         % Ask user if they wish to reduce redundancy
-        if frontback
-            go=1;
-            while go
-                collapseSilhs = questdlg(['USE LARGEST SILHOUETTES TO COLLAPSE'...
-                    ' REDUNDANT INFORMATION IN FRONT/BACK SNAPSHOTS? [N]:'],...
-                    'Collapse Redudant Silhouettes?','Yes','No','No');
-                switch collapseSilhs
-                    case 'Yes'
-                        go = 0;
-                        dofrontback = 1;
-                    case 'No'
-                        go = 0;
-                        dofrontback = 0;
-                end
-            end
-        end
-        if dofrontback
-            for i=1:size(rr,1)
-                ars=[handles.area(rr(i,3)) handles.area(rr(i,4))];
-                maxarsi=find(ars==max(ars));
-                if maxarsi==1, rr(i,5)=rr(i,3); end;
-                if maxarsi==2, rr(i,5)=rr(i,4); end;
-            end
-            [rsort,isort]=sort(r(rr(:,5)));
-            inumsort=rr(isort,5);
-            irsort=[inumsort rsort'];
-        else
-
-            rsort=r;
-            inumsort=1:length(r);
-            irsort=[inumsort' rsort'];
-        end
+%         if frontback
+%             go=1;
+%             while go
+%                 collapseSilhs = questdlg(['USE LARGEST SILHOUETTES TO COLLAPSE'...
+%                     ' REDUNDANT INFORMATION IN FRONT/BACK SNAPSHOTS? [N]:'],...
+%                     'Collapse Redudant Silhouettes?','Yes','No','No');
+%                 switch collapseSilhs
+%                     case 'Yes'
+%                         go = 0;
+%                         dofrontback = 1;
+%                     case 'No'
+%                         go = 0;
+%                         dofrontback = 0;
+%                 end
+%             end
+%         end
+%         if dofrontback
+%             for i=1:size(rr,1)
+%                 ars=[handles.area(rr(i,3)) handles.area(rr(i,4))];
+%                 maxarsi=find(ars==max(ars));
+%                 if maxarsi==1, rr(i,5)=rr(i,3); end;
+%                 if maxarsi==2, rr(i,5)=rr(i,4); end;
+%             end
+%             [rsort,isort]=sort(r(rr(:,5)));
+%             inumsort=rr(isort,5);
+%             irsort=[inumsort rsort'];
+%         else
+% 
+             rsort=r;
+             inumsort=1:length(r);
+             irsort=[inumsort' rsort'];
+%         end
         silh = handles.silhs;
         lims = handles.lims;
         
@@ -663,7 +667,7 @@ handles.octMax = [];
         % Perform occluding contours cube carving
         
         [status,fnametag] = cubeCarvingMod(handles.hdir,handles.projectDir,handles.silhs,handles.lims,...
-            handles.dtheta,handles.n_images,dofrontback,r,rr,irsort,...
+            handles.dtheta,handles.n_images,r,rr,irsort,...
             rsort,inumsort,handles.octStart,handles.octMax,msgCenter);
 
         %[Faces,Vertices] = MarchingCubes(x,y,z,c,5.0,colors);

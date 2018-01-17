@@ -1,0 +1,25 @@
+graph Directories {
+Project [shape=box];
+SourceCode [color=red, shape=box];
+LabView [color=red, shape=box];
+MatLab  [color=red, shape=box];
+ToRun [color=red, shape = round];
+M_Functions [color=red, shape=box];
+CppLibs [color=red, shape=box];
+
+Data [color=blue, shape=box];
+Rabbit1 [color=blue, shape=box];
+Rabbit2 [color=blue, shape=box];
+
+Project--SourceCode [color=red];
+SourceCode--LabView;
+SourceCode--MatLab;
+MatLab--ToRun;
+MatLab--CppLibs;
+MatLab--M_Functions;
+
+Project --Data [color= blue];
+Data --Rabbit1 [color=blue];
+Data--Rabbit2 [color=blue];
+}
+

@@ -1,5 +1,5 @@
 function [status,fnametag] = cubeCarvingMod(geodir, projectDir,silhouettes,lims,...
-    angleStep,n_images,dofrontback,angleArray,...
+    angleStep,n_images,angleArray,...
     rr,snapshotArraySorted,rsort,inumsort,...
     startLevel,maxLevel,msgCenter)
 
@@ -106,7 +106,7 @@ if filename ~= 0
         parafid=fopen(parafname,'w');
         fprintf(parafid,'angleStep, degree step: %4.3f \n',angleStep);
         fprintf(parafid,'n_images, total number of snapshots: %d \n',n_images);
-        fprintf(parafid,'dofrontback, 0: use all silhouettes or 1: use only largest silhouettes: %d \n',dofrontback);
+        %fprintf(parafid,'dofrontback, 0: use all silhouettes or 1: use only largest silhouettes: %d \n',dofrontback);
         fprintf(parafid,'xdim, size of clay cube in x dir (mm): %4.3f \n',xdim);
         fprintf(parafid,'(X0,Xn) mm: (%4.3f,%4.3f) \n',X0,Xn);
         fprintf(parafid,'ydim, size of clay cube in y dir (mm): %4.3f \n',ydim);
@@ -456,8 +456,11 @@ if filename ~= 0
         disp('Rendering ....')
        
         oldDir=pwd;
-        cd(fullfile(projectDir,'cpp_source'));
-        if ispc || ismac
+        
+        % we use open source c-code "Smooth Triangulated Mesh" version 1.1 
+        % by Dirk-Jan Kroon to significantly accelerate computation 
+        cd(fullfile(projectDir,'matlab_code','cpp_source'));
+        if ispc
             mex smoothpatch_curvature_double.c -v
             mex smoothpatch_inversedistance_double.c -v
             mex vertex_neighbours_double.c -v
@@ -465,13 +468,28 @@ if filename ~= 0
             mex -v GCC='/usr/bin/gcc-4.9' smoothpatch_curvature_double.c
             mex -v GCC='/usr/bin/gcc-4.9' smoothpatch_inversedistance_double.c
             mex -v GCC='/usr/bin/gcc-4.9' vertex_neighbours_double.c
+        elseif ismac
+            %
         end
         cd(oldDir);
         FV = isosurface(heartMask, 0.5);
-        FV2 = smoothpatch(FV,1,5);
+        FV2 = smoothpatch(FV,1,7);
         figure, 
-        subplot(1,2,1), patch(FV,'FaceColor',[1 0 0],'EdgeAlpha',0);  view(3); camlight
-        subplot(1,2,2), patch(FV2,'FaceColor',[0 0 1],'EdgeAlpha',0); view(3); camlight
+        subplot(1,1,1), patch(FV2,'FaceColor',[0 0 1],'EdgeAlpha',0); view(3); camlight
+        
+        %print vtk file
+        fileID =fopen(fnametag+"surf.vtk","w");
+        fprintf(fileID,"# vtk DataFile Version 2.0\nvtk output\nASCII\nDATASET POLYDATA\n");
+        fprintf(fileID,"POINTS %d float\n",size(FV2.vertices,1));
+        for i=1:size(FV2.vertices,1)
+            fprintf(fileID,"%f %f %f\n",FV2.vertices(i,1),FV2.vertices(i,2),FV2.vertices(i,3));
+        end
+        fprintf(fileID,"POLYGONS %d %d \n",size(FV2.faces,1), size(FV2.faces,1)*4);
+        for i=1:size(FV2.faces,1)
+            fprintf(fileID,"3 %d %d %d \n",FV2.faces(i,1)-1,FV2.faces(i,2)-1,FV2.faces(i,3)-1);
+        end
+        fprintf(fileID," \n");
+        fclose(fileID);
     else
         status = 0;
     end
