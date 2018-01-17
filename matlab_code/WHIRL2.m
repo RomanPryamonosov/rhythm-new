@@ -135,7 +135,7 @@ set(pR,'MenuBar','none','Visible','on')
 %% Create handles
 handles.hdir = [];
 handles.bdir = [];
-handles.projectDir = fullfile('G:','work','programs','gitProjects','rhythm-new');
+handles.projectDir = uigetdir('Select Project Directory');
     
 handles.dtheta = [];
 handles.n_images = [];

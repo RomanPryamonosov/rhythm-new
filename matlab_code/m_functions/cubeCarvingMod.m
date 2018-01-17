@@ -189,7 +189,7 @@ if filename ~= 0
                     octreeMatrix=1:27;
                 else
                     %TODO revise! does not work
-                    loadPath = strcat(fullfile(projectDir,'matlab_code','whirl_octree_levels','level'),num2str(level),'.mat');
+                    loadPath = strcat(fullfile(projectDir,'whirl_octree_levels','level'),num2str(level),'.mat');
                     %whos ('-file', loadPath)
                     %load(loadPath, 'vert');
                     
@@ -462,7 +462,7 @@ if filename ~= 0
         
         % we use open source c-code "Smooth Triangulated Mesh" version 1.1 
         % by Dirk-Jan Kroon to significantly accelerate computation 
-        cd(fullfile(projectDir,'matlab_code','cpp_source'));
+        cd(fullfile(projectDir,'cpp_source'));
         if ispc
             mex smoothpatch_curvature_double.c -v
             mex smoothpatch_inversedistance_double.c -v
@@ -472,7 +472,9 @@ if filename ~= 0
             mex -v GCC='/usr/bin/gcc-4.9' smoothpatch_inversedistance_double.c
             mex -v GCC='/usr/bin/gcc-4.9' vertex_neighbours_double.c
         elseif ismac
-            %
+            mex -v GCC='gcc' smoothpatch_curvature_double.c
+            mex -v GCC='gcc' smoothpatch_inversedistance_double.c
+            mex -v GCC='gcc' vertex_neighbours_double.c
         end
         cd(oldDir);
         
