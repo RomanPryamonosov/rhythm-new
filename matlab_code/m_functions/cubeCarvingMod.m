@@ -49,6 +49,7 @@ function [status,fnametag] = cubeCarvingMod(geodir, projectDir,silhouettes,lims,
 [filename,pathname] = uigetfile('*.mat','Select camera calibration file (e.g. cal_009.mat).');
 if filename ~= 0
     status = 1;
+    cal_fname = fullfile(pathname, filename); 
     load(fullfile(pathname, filename));
     
 % % %     disp('Camera parameters loaded.')
@@ -148,9 +149,16 @@ if filename ~= 0
         %%
         goodthresh=0.95;
         % Determine rotation matrix for cube based on directionality of rotation
-        Rz = [cosd(-angleStep), -sind(-angleStep), 0;...
-              sind(-angleStep),  cosd(-angleStep), 0;...
-              0,              0,             1];
+        if strcmp(cwtxt,'ccw')
+            Rz = [cosd(-angleStep), -sind(-angleStep), 0;...
+                  sind(-angleStep),  cosd(-angleStep), 0;...
+                  0,              0,             1];
+        else
+            Rz = [cosd(angleStep), -sind(angleStep), 0;...
+                  sind(angleStep),  cosd(angleStep), 0;...
+                  0,              0,             1];
+        end
+        
         
         count = 0;
         progressBar = waitbar(count/(maxLevel-startLevel+1),sprintf('Creating octreeMatrix for level %d...',level));
@@ -342,8 +350,8 @@ if filename ~= 0
                             for ii=1:size(isOctreeCornerInside,1)
                                 if isOctreeCornerInside(ii)
                                     cornerx=(vxyz(ii,1)-X0)/maskDelta(1)+1;
-                                    cornery=(vxyz(ii,2)-X0)/maskDelta(1)+1;
-                                    cornerz=(vxyz(ii,3)-X0)/maskDelta(1)+1;
+                                    cornery=(vxyz(ii,2)-Y0)/maskDelta(2)+1;
+                                    cornerz=(vxyz(ii,3)-Z0)/maskDelta(3)+1;
                                     heartMask(min(centerx,cornerx), min(centery,cornery), min(centerz,cornerz))=1;
                                     
                                 end
@@ -479,17 +487,41 @@ if filename ~= 0
         cd(oldDir);
         
         FV = isosurface(heartMask, 0.5);
+        tic;
+        FV.vertices(:,:) = FV.vertices(:,:) - 1.0;
+        globalShift = [X0 Y0 Z0];
+        for i=1:3
+            FV.vertices(:,i) = FV.vertices(:,i) * maskDelta(i) + globalShift(i);
+        end
         FV2 = smoothpatch(FV,1,7);
+ 
+        % check normal orientation and reorder triangle points if normal
+        % directs inside of a heart
+        modelCentroid = sum(FV2.vertices,1)/size(FV2.vertices,1);
+        for i=1:size(FV2.faces,1)
+            point1 = FV2.vertices(FV2.faces(i,1),:);
+            point2 = FV2.vertices(FV2.faces(i,2),:);
+            point3 = FV2.vertices(FV2.faces(i,3),:);
+            centroid = (point1 + point2 + point3)/3.0;
+            vecToCentroid = centroid - modelCentroid;
+            vec1 = point2 - point1;
+            vec2 = point3 - point1;
+            normal = cross(vec1, vec2);
+            if dot(normal,vecToCentroid)<0
+                FV2.faces(i,:) = flip(FV2.faces(i,:));
+            end
+        end
+        
         
         figure, 
         subplot(1,1,1), patch(FV2,'FaceColor',[0 0 1],'EdgeAlpha',0); view(3); camlight
         
         %print vtk file
-        fileID =fopen(fnametag+"surf.vtk","w");
-        fprintf(fileID,"# vtk DataFile Version 2.0\nvtk output\nASCII\nDATASET POLYDATA\n");
+        fileID = fopen("xyzv"+fnametag{1}+"_surf.vtk","w");
+        fprintf(fileID,"# vtk DataFile Version 4.0\nvtk output\nASCII\nDATASET POLYDATA\n");
         fprintf(fileID,"POINTS %d float\n",size(FV2.vertices,1));
         for i=1:size(FV2.vertices,1)
-            fprintf(fileID,"%f %f %f\n",FV2.vertices(i,1),FV2.vertices(i,2),FV2.vertices(i,3));
+            fprintf(fileID,"%f %f %f\n",FV2.vertices(i,2),FV2.vertices(i,1),FV2.vertices(i,3));
         end
         fprintf(fileID,"POLYGONS %d %d \n",size(FV2.faces,1), size(FV2.faces,1)*4);
         for i=1:size(FV2.faces,1)
@@ -497,11 +529,196 @@ if filename ~= 0
         end
         fprintf(fileID," \n");
         fclose(fileID);
+        
+        %TODO print data and time correctly (uncomment corresponding lines
+        %in following code
+        
+        %TODO check inputfname and print: "Source file: %s"?
+        %TODO print neighbours info      
+
+        inputfname = strcat(fullfile(savedir,'xyzv'),fnametag{1},'.dat'); 
+        
+        
+        %0) Save neighbors      
+        neighsfname=strcat(fullfile(savedir,'xyzv'),fnametag{1},'_neighs.dat');
+        fileID = fopen(neighsfname,'w');
+        
+        fprintf(fileID,"Header lines: 6\n");
+        fprintf(fileID,"Source file: %s\n",inputfname);
+        fprintf(fileID,"NumberOfCells: %d\n",size(FV2.faces,1));
+        fprintf(fileID,"NumberOfComponents: 3\n");
+        fprintf(fileID,"DataType: int\n");
+        fprintf(fileID,"Created: sometime\n");
+        
+        % Suppose vertex has less than 21 adjacent faces, preallocate an insidence array: 
+        maxInsidentFaces = 20;
+        VertexAdjacentFaces=zeros(size(FV2.vertices,1), maxInsidentFaces);
+        % Precompute insidence
+        for i=1:size(FV2.faces,1)
+            for j=1:3
+                vertexInsidence = VertexAdjacentFaces(FV2.faces(i,j),:); 
+                for k=1:maxInsidentFaces
+                    if vertexInsidence(k) ~= 0 
+                        continue;
+                    else
+                        VertexAdjacentFaces(FV2.faces(i,j), k)= i;
+                        break;
+                    end
+                end
+            end
+        end
+
+        %find neighbours and write them on file
+        for i=1:size(FV2.faces,1)
+            nNbr=0;
+            nbrIDs = zeros(3);
+            for k=1:3
+                vertexInsidence = VertexAdjacentFaces(FV2.faces(i,k),:);
+                ind2 = k+1;
+                if ind2 > 3
+                    ind2 = ind2-3;
+                end
+                ind3 = k+2;
+                if ind3 > 3
+                    ind3 = ind3-3;
+                end
+                for j=1:maxInsidentFaces
+                    if vertexInsidence(j)==0
+                        break;
+                    else
+                        neighCandidateID = vertexInsidence(j);
+                        flag=0;
+                        for ii=1:3
+                            if FV2.faces(neighCandidateID,ii)==FV2.faces(i,ind2) ...
+                            || FV2.faces(neighCandidateID,ii)==FV2.faces(i,ind3)
+                                nNbr=nNbr+1;
+                                nbrIDs(k)=vertexInsidence(j);
+                                flag=1;
+                                break;
+                            end
+                        end
+                        if flag==1
+                            break;
+                        end
+                    end
+                end                
+            end
+            fwrite(fileID, nNbr, 'int'); % number of neighbors
+            for i=1:nNbr
+                fwrite(fileID, nbrIDs(i)-1, 'int'); % neighbor's number
+            end
+        end
+        
+        % old code for finding neighbours 
+%         for i=1:size(FV2.faces,1)
+%             nNbr=0;
+%             nbrIDs = zeros(3);
+%             for k=1:3
+%                 edge=[FV2.faces(i,k);FV2.faces(i,rem(k,3)+1)]; %rem(k,3)+1 covers 'k+1=4' case
+%                 for j=1:size(FV2.faces,1)
+%                     for l=1:3
+%                       tmp1 = [FV2.faces(j,l);FV2.faces(j,rem(l,3)+1)];
+%                       tmp2 = [FV2.faces(j,rem(l,3)+1);FV2.faces(j,l)];
+%                       if((isequal(edge,tmp1) ...
+%                               || isequal(edge,tmp2)&&(i~=j))) 
+%                           nNbr=nNbr+1;
+%                           nbrIDs(k)=j;
+%                       end
+%                     end
+%                 end
+%             end
+%             fwrite(fileID, nNbr, 'int'); % number of neighbors
+%             for i=1:nNbr
+%                 fwrite(fileID, nbrIDs(i)-1, 'int'); % neighbor's number
+%             end
+%         end
+%         fclose(fileID);
+        
+        %1) Save points
+        xyzvfname=strcat(fullfile(savedir,'xyzv'),fnametag{1},'_pts.dat');
+        fileID = fopen(xyzvfname,'w');
+        fprintf(fileID,"Header lines: 6\n");
+        fprintf(fileID,"Source file: %s\n",inputfname);
+        fprintf(fileID,"NumberOfTuples: %d\n",size(FV2.vertices,1));
+        fprintf(fileID,"NumberOfComponents: 3\n");
+        fprintf(fileID,"DataType: double\n");
+        % CHECK AND UNCOMMENT
+        %fprintf(fid,"Created: %s",time_string);
+         fprintf(fileID,"Created: sometime\n");
+        for i=1:size(FV2.vertices,1)
+            fwrite(fileID, FV2.vertices(i,2), 'double'); % vertice x
+            fwrite(fileID, FV2.vertices(i,1), 'double'); % vertice y
+            fwrite(fileID, FV2.vertices(i,3), 'double'); % vertice z
+        end
+        fclose(fileID);
+        
+        %2) Save cells
+        cellsfname=strcat(fullfile(savedir,'xyzv'),fnametag{1},'_cells.dat');
+        fileID=fopen(cellsfname,"w");
+        fprintf(fileID,"Header lines: 6\n");
+        % CHECK:
+        fprintf(fileID,"Source file: %s\n",inputfname);
+        fprintf(fileID,"NumberOfTuples: %d\n",size(FV2.faces,1));
+        fprintf(fileID,"NumberOfComponents: 3\n");
+        fprintf(fileID,"DataType: int\n");
+        % CHECK AND UNCOMMENT:
+        %fprintf(fileID,"Created: %s",stime);
+        fprintf(fileID,"Created: sometime\n");
+        for i=1:size(FV2.faces,1)
+            fwrite(fileID, FV2.faces(i,1)-1, 'int'); % triangle vertex id1
+            fwrite(fileID, FV2.faces(i,2)-1, 'int'); % triangle vertex id2
+            fwrite(fileID, FV2.faces(i,3)-1, 'int'); % triangle vertex id3
+        end
+        fclose(fileID);
+        
+        %3,4) Save centroids and normals
+        centroidsfname=strcat(fullfile(savedir,'xyzv'),fnametag{1},'_centroids.dat');
+        fileIDcentroid=fopen(centroidsfname,"w");
+        fprintf(fileIDcentroid,"Header lines: 6\n");
+        % CHECK inputfname:
+        fprintf(fileIDcentroid,"Source file: %s\n",inputfname);
+        fprintf(fileIDcentroid,"NumberOfTuples: %d\n",size(FV2.faces,1));
+        fprintf(fileIDcentroid,"NumberOfComponents: 3\n");
+        fprintf(fileIDcentroid,"DataType: double\n");
+        % CHECK AND UNCOMMENT:
+        %fprintf(fileIDcentroid,"Created: %s",stime);
+         fprintf(fileIDcentroid,"Created: sometime\n");
+        
+        normalsfname=strcat(fullfile(savedir,'xyzv'),fnametag{1},'_normals.dat');
+        fileIDnormal=fopen(normalsfname,"w");
+        fprintf(fileIDnormal,"Header lines: 6\n");
+        % CHECK inputfname:
+        fprintf(fileIDnormal,"Source file: %s\n",inputfname);
+        fprintf(fileIDnormal,"NumberOfTuples: %d\n",size(FV2.faces,1));
+        fprintf(fileIDnormal,"NumberOfComponents: 3\n");
+        fprintf(fileIDnormal,"DataType: double\n");
+        % CHECK AND UNCOMMENT:
+%        fprintf(fileIDnormal,"Created: %s",stime);
+         fprintf(fileIDnormal,"Created: sometime\n");
+        
+        for i=1:size(FV2.faces,1)
+            point1 = FV2.vertices(FV2.faces(i,1),:);
+            point2 = FV2.vertices(FV2.faces(i,2),:);
+            point3 = FV2.vertices(FV2.faces(i,3),:);
+            centroid = (point1 + point2 + point3)/3.0;
+            fwrite(fileIDcentroid, centroid(1), 'double'); % centroid x
+            fwrite(fileIDcentroid, centroid(2), 'double'); % centroid y
+            fwrite(fileIDcentroid, centroid(3), 'double'); % centroid z
+            
+            vec1 = point2 - point1;
+            vec2 = point3 - point1;
+            normal = cross(vec1, vec2);
+            normalized = normal / norm(normal);
+            
+            fwrite(fileIDnormal, normalized(1), 'double'); %normal x
+            fwrite(fileIDnormal, normalized(2), 'double'); %normal y
+            fwrite(fileIDnormal, normalized(3), 'double'); %normal z
+        end
+        fclose(fileIDcentroid);
+        fclose(fileIDnormal);
     else
         status = 0;
     end
-else
-    status = 0;
-end
+
 
 end
