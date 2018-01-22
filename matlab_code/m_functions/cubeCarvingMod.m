@@ -428,7 +428,7 @@ if filename ~= 0
         end % End level loop
         %close progress bar progressBar
         close(progressBar)
-        
+        h = msgbox('Saving surface data...');
         % Normalization %
         % Normalize and save data
         normalizedVertices=zeros(size(vertexMatrix,1),size(vertexMatrix,2)-1);
@@ -468,7 +468,7 @@ if filename ~= 0
        
         oldDir=pwd;
         
-        % we use open source c-code "Smooth Triangulated Mesh" version 1.1 
+        % we use open source c-code 'Smooth Triangulated Mesh' version 1.1 
         % by Dirk-Jan Kroon to significantly accelerate computation 
         cd(fullfile(projectDir,'cpp_source'));
         if ispc
@@ -517,23 +517,23 @@ if filename ~= 0
         subplot(1,1,1), patch(FV2,'FaceColor',[0 0 1],'EdgeAlpha',0); view(3); camlight
         
         %print vtk file
-        fileID = fopen("xyzv"+fnametag{1}+"_surf.vtk","w");
-        fprintf(fileID,"# vtk DataFile Version 4.0\nvtk output\nASCII\nDATASET POLYDATA\n");
-        fprintf(fileID,"POINTS %d float\n",size(FV2.vertices,1));
+        fileID = fopen(strcat('xyzv',fnametag{1},'_surf.vtk'),'w');
+        fprintf(fileID,'# vtk DataFile Version 4.0\nvtk output\nASCII\nDATASET POLYDATA\n');
+        fprintf(fileID,'POINTS %d float\n',size(FV2.vertices,1));
         for i=1:size(FV2.vertices,1)
-            fprintf(fileID,"%f %f %f\n",FV2.vertices(i,2),FV2.vertices(i,1),FV2.vertices(i,3));
+            fprintf(fileID,'%f %f %f\n',FV2.vertices(i,2),FV2.vertices(i,1),FV2.vertices(i,3));
         end
-        fprintf(fileID,"POLYGONS %d %d \n",size(FV2.faces,1), size(FV2.faces,1)*4);
+        fprintf(fileID,'POLYGONS %d %d \n',size(FV2.faces,1), size(FV2.faces,1)*4);
         for i=1:size(FV2.faces,1)
-            fprintf(fileID,"3 %d %d %d \n",FV2.faces(i,1)-1,FV2.faces(i,2)-1,FV2.faces(i,3)-1);
+            fprintf(fileID,'3 %d %d %d \n',FV2.faces(i,1)-1,FV2.faces(i,2)-1,FV2.faces(i,3)-1);
         end
-        fprintf(fileID," \n");
+        fprintf(fileID,' \n');
         fclose(fileID);
         
         %TODO print data and time correctly (uncomment corresponding lines
         %in following code
         
-        %TODO check inputfname and print: "Source file: %s"?
+        %TODO check inputfname and print: 'Source file: %s'?
         %TODO print neighbours info      
 
         inputfname = strcat(fullfile(savedir,'xyzv'),fnametag{1},'.dat'); 
@@ -543,12 +543,12 @@ if filename ~= 0
         neighsfname=strcat(fullfile(savedir,'xyzv'),fnametag{1},'_neighs.dat');
         fileID = fopen(neighsfname,'w');
         
-        fprintf(fileID,"Header lines: 6\n");
-        fprintf(fileID,"Source file: %s\n",inputfname);
-        fprintf(fileID,"NumberOfCells: %d\n",size(FV2.faces,1));
-        fprintf(fileID,"NumberOfComponents: 3\n");
-        fprintf(fileID,"DataType: int\n");
-        fprintf(fileID,"Created: sometime\n");
+        fprintf(fileID,'Header lines: 6\n');
+        fprintf(fileID,'Source file: %s\n',inputfname);
+        fprintf(fileID,'NumberOfCells: %d\n',size(FV2.faces,1));
+        fprintf(fileID,'NumberOfComponents: 3\n');
+        fprintf(fileID,'DataType: int\n');
+        fprintf(fileID,'Created: sometime\n');
         
         % Suppose vertex has less than 21 adjacent faces, preallocate an insidence array: 
         maxInsidentFaces = 20;
@@ -637,14 +637,14 @@ if filename ~= 0
         %1) Save points
         xyzvfname=strcat(fullfile(savedir,'xyzv'),fnametag{1},'_pts.dat');
         fileID = fopen(xyzvfname,'w');
-        fprintf(fileID,"Header lines: 6\n");
-        fprintf(fileID,"Source file: %s\n",inputfname);
-        fprintf(fileID,"NumberOfTuples: %d\n",size(FV2.vertices,1));
-        fprintf(fileID,"NumberOfComponents: 3\n");
-        fprintf(fileID,"DataType: double\n");
+        fprintf(fileID,'Header lines: 6\n');
+        fprintf(fileID,'Source file: %s\n',inputfname);
+        fprintf(fileID,'NumberOfTuples: %d\n',size(FV2.vertices,1));
+        fprintf(fileID,'NumberOfComponents: 3\n');
+        fprintf(fileID,'DataType: double\n');
         % CHECK AND UNCOMMENT
-        %fprintf(fid,"Created: %s",time_string);
-         fprintf(fileID,"Created: sometime\n");
+        %fprintf(fid,'Created: %s',time_string);
+         fprintf(fileID,'Created: sometime\n');
         for i=1:size(FV2.vertices,1)
             fwrite(fileID, FV2.vertices(i,2), 'double'); % vertice x
             fwrite(fileID, FV2.vertices(i,1), 'double'); % vertice y
@@ -654,16 +654,16 @@ if filename ~= 0
         
         %2) Save cells
         cellsfname=strcat(fullfile(savedir,'xyzv'),fnametag{1},'_cells.dat');
-        fileID=fopen(cellsfname,"w");
-        fprintf(fileID,"Header lines: 6\n");
+        fileID=fopen(cellsfname,'w');
+        fprintf(fileID,'Header lines: 6\n');
         % CHECK:
-        fprintf(fileID,"Source file: %s\n",inputfname);
-        fprintf(fileID,"NumberOfTuples: %d\n",size(FV2.faces,1));
-        fprintf(fileID,"NumberOfComponents: 3\n");
-        fprintf(fileID,"DataType: int\n");
+        fprintf(fileID,'Source file: %s\n',inputfname);
+        fprintf(fileID,'NumberOfTuples: %d\n',size(FV2.faces,1));
+        fprintf(fileID,'NumberOfComponents: 3\n');
+        fprintf(fileID,'DataType: int\n');
         % CHECK AND UNCOMMENT:
-        %fprintf(fileID,"Created: %s",stime);
-        fprintf(fileID,"Created: sometime\n");
+        %fprintf(fileID,'Created: %s',stime);
+        fprintf(fileID,'Created: sometime\n');
         for i=1:size(FV2.faces,1)
             fwrite(fileID, FV2.faces(i,1)-1, 'int'); % triangle vertex id1
             fwrite(fileID, FV2.faces(i,2)-1, 'int'); % triangle vertex id2
@@ -673,28 +673,28 @@ if filename ~= 0
         
         %3,4) Save centroids and normals
         centroidsfname=strcat(fullfile(savedir,'xyzv'),fnametag{1},'_centroids.dat');
-        fileIDcentroid=fopen(centroidsfname,"w");
-        fprintf(fileIDcentroid,"Header lines: 6\n");
+        fileIDcentroid=fopen(centroidsfname,'w');
+        fprintf(fileIDcentroid,'Header lines: 6\n');
         % CHECK inputfname:
-        fprintf(fileIDcentroid,"Source file: %s\n",inputfname);
-        fprintf(fileIDcentroid,"NumberOfTuples: %d\n",size(FV2.faces,1));
-        fprintf(fileIDcentroid,"NumberOfComponents: 3\n");
-        fprintf(fileIDcentroid,"DataType: double\n");
+        fprintf(fileIDcentroid,'Source file: %s\n',inputfname);
+        fprintf(fileIDcentroid,'NumberOfTuples: %d\n',size(FV2.faces,1));
+        fprintf(fileIDcentroid,'NumberOfComponents: 3\n');
+        fprintf(fileIDcentroid,'DataType: double\n');
         % CHECK AND UNCOMMENT:
-        %fprintf(fileIDcentroid,"Created: %s",stime);
-         fprintf(fileIDcentroid,"Created: sometime\n");
+        %fprintf(fileIDcentroid,'Created: %s',stime);
+         fprintf(fileIDcentroid,'Created: sometime\n');
         
         normalsfname=strcat(fullfile(savedir,'xyzv'),fnametag{1},'_normals.dat');
-        fileIDnormal=fopen(normalsfname,"w");
-        fprintf(fileIDnormal,"Header lines: 6\n");
+        fileIDnormal=fopen(normalsfname,'w');
+        fprintf(fileIDnormal,'Header lines: 6\n');
         % CHECK inputfname:
-        fprintf(fileIDnormal,"Source file: %s\n",inputfname);
-        fprintf(fileIDnormal,"NumberOfTuples: %d\n",size(FV2.faces,1));
-        fprintf(fileIDnormal,"NumberOfComponents: 3\n");
-        fprintf(fileIDnormal,"DataType: double\n");
+        fprintf(fileIDnormal,'Source file: %s\n',inputfname);
+        fprintf(fileIDnormal,'NumberOfTuples: %d\n',size(FV2.faces,1));
+        fprintf(fileIDnormal,'NumberOfComponents: 3\n');
+        fprintf(fileIDnormal,'DataType: double\n');
         % CHECK AND UNCOMMENT:
-%        fprintf(fileIDnormal,"Created: %s",stime);
-         fprintf(fileIDnormal,"Created: sometime\n");
+%        fprintf(fileIDnormal,'Created: %s',stime);
+         fprintf(fileIDnormal,'Created: sometime\n');
         
         for i=1:size(FV2.faces,1)
             point1 = FV2.vertices(FV2.faces(i,1),:);
@@ -716,6 +716,7 @@ if filename ~= 0
         end
         fclose(fileIDcentroid);
         fclose(fileIDnormal);
+        delete(h);
     else
         status = 0;
     end
