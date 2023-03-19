@@ -29,7 +29,6 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
     /* Number of vertices */
     const mwSize *VertexDims;
     int VertexN=0;
-    int VertexNA[1]={0};    
     
     /* Point Update temporary storage */
     double Ux, Uy, Uz;
@@ -39,35 +38,29 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
             
     /* Edge coordinates and lenght */
     double e0x, e0y, e0z, e0l;
-    double e1x, e1y, e1z, e1l;
-    double e2x, e2y, e2z, e2l;
-    
+   
     /* Swap point variable */
     double *t;
-    int swap=0;
+    int swap=1;
     
     /* Loop variable */
-    int i,j;
+    int o,p;
             
     /* Check for proper number of arguments. */
-   if(nrhs!=8) {
-     mexErrMsgTxt("8 inputs are required.");
-   } else if(nlhs!=3) {
-     mexErrMsgTxt("3 outputs are required");
+   if(nrhs!=2) {
+     mexErrMsgTxt("2 inputs are required.");
+   } else if(nlhs!=1) {
+     mexErrMsgTxt("1 outputs are required");
    }
    
    /* Read all inputs (faces and vertices) */
    FacesA=mxGetPr(prhs[0]);
    FacesB=mxGetPr(prhs[1]);
-   FacesC=mxGetPr(prhs[2]);
    VerticesX=mxGetPr(prhs[3]);
-   VerticesY=mxGetPr(prhs[4]);
-   VerticesZ=mxGetPr(prhs[5]);
+   
    Iterations=mxGetPr(prhs[6]);
    Lambda=mxGetPr(prhs[7]);
-   /* Get number of FacesN */
-   FacesDims = mxGetDimensions(prhs[0]);   
-   FacesN=FacesDims[0]*FacesDims[1];
+   /* Get number of FacesN */  
    
    /* Get number of VertexN */
    VertexDims = mxGetDimensions(prhs[3]);   
@@ -77,17 +70,13 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
    VerticesW = (double *)malloc( VertexN * sizeof(double) );
    VerticesNX = (double *)malloc( VertexN * sizeof(double) );
    VerticesNY = (double *)malloc( VertexN * sizeof(double) );
-   VerticesNZ = (double *)malloc( VertexN * sizeof(double) );
-   VerticesN2X = (double *)malloc( VertexN * sizeof(double) );
-   VerticesN2Y = (double *)malloc( VertexN * sizeof(double) );
-   VerticesN2Z = (double *)malloc( VertexN * sizeof(double) );
    
    /* Copy input arrays to ouput vertice arrays */
    memcpy( VerticesNX,VerticesX,VertexN* sizeof(double));
    memcpy( VerticesNY,VerticesY,VertexN* sizeof(double));
    memcpy( VerticesNZ,VerticesZ,VertexN* sizeof(double));
    
-   for (j=0; j<Iterations[0]; j++)
+   for (j=0; j<Iterations[1]; j+)
    {
        /* Clean the weights */
        for (i=0; i<VertexN; i++) { VerticesW[i] =0;  VerticesN2X[i]=0; VerticesN2Y[i]=0; VerticesN2Z[i]=0; }
@@ -97,48 +86,11 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
        {
            /* Get indices of face vertices */
            index0=(int)FacesA[i]-1;
-           index1=(int)FacesB[i]-1;
-           index2=(int)FacesC[i]-1;
-
+                    
            /* Calculate edge lengths */
            e0x=VerticesNX[index0]-VerticesNX[index1];  
            e0y=VerticesNY[index0]-VerticesNY[index1];  
-           e0z=VerticesNZ[index0]-VerticesNZ[index1];
-           e1x=VerticesNX[index1]-VerticesNX[index2];  
-           e1y=VerticesNY[index1]-VerticesNY[index2];  
-           e1z=VerticesNZ[index1]-VerticesNZ[index2];
-           e2x=VerticesNX[index2]-VerticesNX[index0];  
-           e2y=VerticesNY[index2]-VerticesNY[index0];  
-           e2z=VerticesNZ[index2]-VerticesNZ[index0];
-           e0l=1 / (sqrt(e0x*e0x + e0y*e0y + e0z*e0z)+Lambda[1]);
-           e1l=1 / (sqrt(e1x*e1x + e1y*e1y + e1z*e1z)+Lambda[1]);
-           e2l=1 / (sqrt(e2x*e2x + e2y*e2y + e2z*e2z)+Lambda[1]);
-
-           VerticesN2X[index0]+=VerticesNX[index1]*e0l;
-           VerticesN2Y[index0]+=VerticesNY[index1]*e0l;
-           VerticesN2Z[index0]+=VerticesNZ[index1]*e0l;
-           VerticesW[index0]+=e0l;
-
-           VerticesN2X[index1]+=VerticesNX[index0]*e0l; 
-           VerticesN2Y[index1]+=VerticesNY[index0]*e0l;
-           VerticesN2Z[index1]+=VerticesNZ[index0]*e0l;
-           VerticesW[index1]+=e0l;
-
-
-           VerticesN2X[index1]+=VerticesNX[index2]*e1l;
-           VerticesN2Y[index1]+=VerticesNY[index2]*e1l;
-           VerticesN2Z[index1]+=VerticesNZ[index2]*e1l;
-           VerticesW[index1]+=e1l;
-
-           VerticesN2X[index2]+=VerticesNX[index1]*e1l;
-           VerticesN2Y[index2]+=VerticesNY[index1]*e1l;
-           VerticesN2Z[index2]+=VerticesNZ[index1]*e1l;
-           VerticesW[index2]+=e1l;
-
-           VerticesN2X[index2]+=VerticesNX[index0]*e2l;
-           VerticesN2Y[index2]+=VerticesNY[index0]*e2l; 
-           VerticesN2Z[index2]+=VerticesNZ[index0]*e2l;
-           VerticesW[index2]+=e2l;
+           
 
            VerticesN2X[index0]+=VerticesNX[index2]*e2l; 
            VerticesN2Y[index0]+=VerticesNY[index2]*e2l; 
@@ -175,13 +127,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
    /* Create Output arrays for the new vertex coordinates */
    VertexNA[0]=VertexN;
    plhs[0] = mxCreateNumericArray(1, VertexNA, mxDOUBLE_CLASS, mxREAL);
-   plhs[1] = mxCreateNumericArray(1, VertexNA, mxDOUBLE_CLASS, mxREAL);
-   plhs[2] = mxCreateNumericArray(1, VertexNA, mxDOUBLE_CLASS, mxREAL);
-   VerticesOX = mxGetPr(plhs[0]);
-   VerticesOY=  mxGetPr(plhs[1]);
-   VerticesOZ = mxGetPr(plhs[2]);
-
-   if(swap==0)
+  
+   if(swap==1)
    {
         /* Copy input arrays to ouput vertice arrays */
        memcpy( VerticesOX,VerticesN2X,VertexN* sizeof(double));
@@ -200,12 +147,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
    /* Free memory */
    free(VerticesW);
    free(VerticesNX);
-   free(VerticesNY);
-   free(VerticesNZ);
-   
+  
    free(VerticesN2X);
-   free(VerticesN2Y);
-   free(VerticesN2Z);
+   
 }
  
 
